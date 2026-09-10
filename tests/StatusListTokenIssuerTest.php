@@ -35,14 +35,14 @@ final class StatusListTokenIssuerTest extends TokenStatusListTestCase
         [$header, $payload, $signature] = explode('.', $compact);
 
         // assert: header
-        fact(json_decode((string) Base64Url::decode($header), true))->is([
+        fact((string) Base64Url::decode($header))->matchesJson([
             'kid' => '12',
             'alg' => 'ES256',
             'typ' => 'statuslist+jwt',
         ]);
 
         // assert: payload matches the specification's example claims
-        fact(json_decode((string) Base64Url::decode($payload), true))->is([
+        fact((string) Base64Url::decode($payload))->matchesJson([
             'sub' => 'https://example.com/statuslists/1',
             'iat' => 1686920170,
             'status_list' => ['bits' => 1, 'lst' => 'eNrbuRgAAhcBXQ'],
@@ -58,13 +58,11 @@ final class StatusListTokenIssuerTest extends TokenStatusListTestCase
     {
         // act
         $compact = (new StatusListTokenIssuer(self::localSigner()))->issue(self::LIST_URI, self::exampleList(), issuedAt: self::CLOCK);
-        $payload = json_decode((string) Base64Url::decode(explode('.', $compact)[1]), true);
-        $header = json_decode((string) Base64Url::decode(explode('.', $compact)[0]), true);
+        [$header, $payload] = explode('.', $compact);
 
         // assert
-        fact($payload)->arrayNotHasKey('exp');
-        fact($payload)->arrayNotHasKey('ttl');
-        fact($header)->arrayNotHasKey('kid');
+        fact((string) Base64Url::decode($payload))->notHasJsonPath('exp')->notHasJsonPath('ttl');
+        fact((string) Base64Url::decode($header))->notHasJsonPath('kid');
     }
 
     public function testDefaultsIssuedAtToNow(): void
@@ -92,17 +90,16 @@ final class StatusListTokenIssuerTest extends TokenStatusListTestCase
             header: ['x5u' => 'https://example.com/cert.pem', 'typ' => 'JWT'],
         );
         [$header, $payload] = explode('.', $compact);
-        $decodedHeader = json_decode((string) Base64Url::decode($header), true);
-        $decodedPayload = json_decode((string) Base64Url::decode($payload), true);
+        $decodedHeader = (string) Base64Url::decode($header);
+        $decodedPayload = (string) Base64Url::decode($payload);
 
         // assert: extras are present
-        fact($decodedPayload['iss'])->is('https://example.com');
-        fact($decodedHeader['x5u'])->is('https://example.com/cert.pem');
+        fact($decodedPayload)->jsonPath('iss', 'https://example.com');
+        fact($decodedHeader)->jsonPath('x5u', 'https://example.com/cert.pem');
 
         // assert: reserved members cannot be overridden
-        fact($decodedPayload['sub'])->is(self::LIST_URI);
-        fact($decodedPayload['iat'])->is(self::CLOCK);
-        fact($decodedHeader['typ'])->is('statuslist+jwt');
+        fact($decodedPayload)->jsonPath('sub', self::LIST_URI)->jsonPath('iat', self::CLOCK);
+        fact($decodedHeader)->jsonPath('typ', 'statuslist+jwt');
     }
 
     public function testInfersEdDsaForAnEd25519Signer(): void
