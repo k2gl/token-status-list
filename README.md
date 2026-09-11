@@ -14,7 +14,10 @@ An issuer publishes one signed, compressed bit array for many tokens; each token
 once, verifies it, and reads a couple of bits.
 
 Both sides are covered: build and sign a Status List Token, and resolve and check the status
-of a Referenced Token. Tracks **draft -21**. The test suite reproduces the draft's Appendix C
+of a Referenced Token. Tracks **draft -21**. SD-JWT VC (draft -19) requires the Status List
+Token of a credential's `status` claim to be in JWT format — exactly what this package
+implements; [k2gl/sd-jwt-vc](https://github.com/k2gl/sd-jwt-vc) hands you the claim,
+`StatusReference::fromClaim()` takes it from there. The test suite reproduces the draft's Appendix C
 test vectors byte for byte — the 1-, 2-, 4- and 8-bit lists both decode to the listed
 statuses and re-encode to the exact `lst` values.
 
